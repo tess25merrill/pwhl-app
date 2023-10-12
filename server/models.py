@@ -2,7 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
-from config import app, db, api
+from config import db
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -59,6 +59,14 @@ class Question(db.Model):
     quiz_id = db.Column(db.Integer, db.ForeignKey('quizzes.id'), nullable=False)
 
     #serialization
+    def to_dict(self):
+        return {
+            'id': self.id, 
+            'prompt': self.prompt,
+            'quiz_id': self.quiz_id
+            # 'answer': self.answer.to_dict()
+        }
+
     #validations
     validation_errors = []
 
@@ -73,6 +81,14 @@ class Question(db.Model):
         else:
             self.validation_errors.append('Prompt must be a string.')
 
+    @validates('quiz_id')
+    def validate_quiz (self, key, quiz_id):
+        quiz = Quiz.find_by_id(quiz_id)
+        if quiz:
+            return quiz_id
+        else:
+            self.validation_errors.append('Quiz not found.')
+
 class Answer(db.Model):
     __tablename__ = 'answers'
 
@@ -84,6 +100,14 @@ class Answer(db.Model):
     question_id = db.Column(db.Integer, db.ForeignKey('questions.id'), nullable=False)
 
     #serialization
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'text': self.text,
+            'correct': self.correct,
+            'question_id': self.question_id
+        }
+
     #validations
     validation_errors = []
 
@@ -97,6 +121,14 @@ class Answer(db.Model):
             return text
         else:
             self.validation_errors.append('Text must be a string.')
+
+    @validates('question_id')
+    def validate_question (self, key, question_id):
+        question = Question.find_by_id(question_id)
+        if question:
+            return question_id
+        else:
+            self.validation_errors.append('Question not found.')
 
 class Score(db.Model):
     __tablename__ = 'scores'
